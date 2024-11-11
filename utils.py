@@ -2,16 +2,16 @@ import matplotlib.pyplot as plt
 import torch
 import os
 import sys
-import training
+import bacon.training as training
 import numpy as np
-import dataio
+import bacon.dataio as dataio
 from torchvision.utils import make_grid
 import skimage.metrics
 import skimage.transform
 import torch.nn
 from tqdm import tqdm
-import forward_models
-import modules
+import bacon.forward_models as forward_models
+import bacon.modules as modules
 import skimage.io
 
 
@@ -177,11 +177,11 @@ def write_image_summary(image_resolution, train_dataset, model, model_input, gt,
     tmp = {}
     for key, value in model_input.items():
         if isinstance(value, torch.Tensor):
-            tmp.update({key: value[None, ...].cuda()})
+            tmp.update({key: value[None, ...]})
         else:
             tmp.update({key: value})
     model_input = tmp
-    gt = {key: value[None, ...].cuda() for key, value in gt.items()}
+    gt = {key: value[None, ...] for key, value in gt.items()}
 
     with torch.no_grad():
         model_output = model(model_input)
