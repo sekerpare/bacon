@@ -1,11 +1,11 @@
 from torch.utils.tensorboard import SummaryWriter
 import torch
-import utils
+import bacon.utils as utils
 from tqdm.autonotebook import tqdm
 import time
 import numpy as np
 import os
-import forward_models
+import bacon.forward_models as forward_models
 from functools import partial
 import shutil
 
@@ -80,8 +80,8 @@ def train(model, train_dataloader, steps, lr, steps_til_summary,
 
             start_time = time.time()
 
-            model_input = dict2cuda(model_input)
-            gt = dict2cuda(gt)
+            #model_input = dict2cuda(model_input)
+            #gt = dict2cuda(gt)
 
             if double_precision:
                 model_input = {key: value.double()
