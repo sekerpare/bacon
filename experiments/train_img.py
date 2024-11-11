@@ -62,7 +62,7 @@ p.add_argument('--no_pe', action='store_true', default=False,
 # data processing and i/o
 p.add_argument('--centered', action='store_true', default=False,
                help='centere input coordinates as -1 to 1')
-p.add_argument('--img_fn', type=str, default='../data/lighthouse.png',
+p.add_argument('--img_fn', type=str, default='',
                help='path to specific png filename')
 p.add_argument('--grayscale', action='store_true', default=False,
                help='if grayscale image')
@@ -81,23 +81,24 @@ if opt.experiment_name is None and opt.render_model is None:
 os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu)
 
 
-def main():
+def main(opt, img):
 
     print('--- Run Configuration ---')
     for k, v in vars(opt).items():
         print(k, v)
 
-    train()
+    model = train(opt, img)
+    return model
 
 
-def train():
+def train(opt, img):
 
     # set up logging dir
     opt.root_path = os.path.join(opt.logging_root, opt.experiment_name)
     utils.cond_mkdir(opt.root_path)
 
     # get datasets
-    trn_dataset, val_dataset, dataloader = init_dataloader(opt)
+    trn_dataset, val_dataset, dataloader = init_dataloader(opt, img)
 
     # set up coordinate network
     model = init_model(opt)
@@ -114,9 +115,10 @@ def train():
                    steps_til_summary=opt.steps_til_summary,
                    steps_til_checkpoint=opt.steps_til_ckpt,
                    model_dir=opt.root_path, loss_fn=loss_fn, summary_fn=summary_fn)
+    return model
 
 
-def init_dataloader(opt):
+def init_dataloader(opt, img):
     ''' load image datasets, dataloader '''
 
     if opt.img_fn == '../data/lighthouse.png':
@@ -125,9 +127,9 @@ def init_dataloader(opt):
         url = None
 
     # init datasets
-    trn_dataset = dataio.ImageFile(opt.img_fn, grayscale=opt.grayscale, resolution=(opt.res, opt.res), url=url)
+    trn_dataset = dataio.ImageFile(img, grayscale=opt.grayscale, resolution=(opt.res, opt.res), url=url)
 
-    val_dataset = dataio.ImageFile(opt.img_fn, grayscale=opt.grayscale, resolution=(2*opt.res, 2*opt.res), url=url)
+    val_dataset = dataio.ImageFile(img, grayscale=opt.grayscale, resolution=(2*opt.res, 2*opt.res), url=url)
 
     trn_dataset = dataio.ImageWrapper(trn_dataset, centered=opt.centered,
                                       include_end=False,
@@ -194,7 +196,6 @@ def init_model(opt):
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f'Num. Parameters: {params}')
-    model.cuda()
 
     return model
 
@@ -228,4 +229,4 @@ def save_params(opt, model):
 
 
 if __name__ == '__main__':
-    main()
+    model = main(opt)
