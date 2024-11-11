@@ -187,21 +187,22 @@ def crop_max_square(pil_img):
 
 
 class ImageFile(Dataset):
-    def __init__(self, filename, grayscale=False, resolution=None,
+    def __init__(self, img, grayscale=False, resolution=None,
                  root_path=None, crop_square=True, url=None):
 
         super().__init__()
 
-        if not os.path.exists(filename):
+        """if not os.path.exists(filename):
             if url is None:
                 raise FileNotFoundError(
                     errno.ENOENT, os.strerror(errno.ENOENT), filename)
             else:
                 print('Downloading image file...')
                 os.makedirs(os.path.dirname(filename), exist_ok=True)
-                urllib.request.urlretrieve(url, filename)
+                urllib.request.urlretrieve(url, filename)"""
 
-        self.img = Image.open(filename)
+        #self.img = Image.open(filename)
+        self.img = img
         if grayscale:
             self.img = self.img.convert('L')
         else:
@@ -215,7 +216,7 @@ class ImageFile(Dataset):
 
         if resolution is not None:
             self.resolution = resolution
-            self.img = self.img.resize(resolution, Image.ANTIALIAS)
+            self.img = self.img.resize(resolution, Image.LANCZOS)
 
         self.img = np.array(self.img)
         self.img = self.img.astype(np.float32)/255.
