@@ -1,5 +1,5 @@
 import torch
-import forward_models
+import bacon.forward_models as forward_models
 
 
 def function_mse(model_output, gt):
