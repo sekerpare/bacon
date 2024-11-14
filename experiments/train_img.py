@@ -15,83 +15,18 @@ import configargparse
 import torch
 from functools import partial
 
-torch.backends.cudnn.benchmark = True
-torch.set_num_threads(4)
 
-p = configargparse.ArgumentParser()
-
-# config file, output directories
-p.add('-c', '--config', required=False, is_config_file=True,
-      help='Path to config file.')
-p.add_argument('--logging_root', type=str, default='../logs', help='root for logging')
-p.add_argument('--experiment_name', type=str, default='train_img',
-               help='path to directory where checkpoints & tensorboard events will be saved.')
-
-# general training options
-p.add_argument('--model', default='mfn', choices=['mfn', 'mlp'],
-               help='use MFN or standard MLP')
-p.add_argument('--batch_size', type=int, default=1)
-p.add_argument('--hidden_features', type=int, default=32)
-p.add_argument('--hidden_layers', type=int, default=4)
-p.add_argument('--res', type=int, default=256,
-               help='resolution of image to fit, also used to set the network-equivalent sample rate'
-               + ' i.e., the maximum network bandwidth in cycles per unit interval is half this value')
-p.add_argument('--lr', type=float, default=5e-4, help='learning rate')
-p.add_argument('--num_steps', type=int, default=5001,
-               help='number of training steps')
-p.add_argument('--gpu', type=int, default=0,
-               help='gpu id to use for training')
-
-# mfn options
-p.add_argument('--multiscale', action='store_true', default=False,
-               help='use multiscale')
-p.add_argument('--use_resized', action='store_true', default=False,
-               help='use multiscale')
-
-# mlp options
-p.add_argument('--activation', type=str, default='sine',
-               choices=['sine', 'relu', 'requ', 'gelu', 'selu', 'softplus', 'tanh', 'swish'],
-               help='activation to use (for model mlp only)')
-p.add_argument('--ipe', action='store_true', default=False,
-               help='use integrated positional encoding')
-p.add_argument('--w0', type=float, default=10)
-p.add_argument('--pe_scale', type=float, default=3, help='positional encoding scale')
-p.add_argument('--no_pe', action='store_true', default=False,
-               help='override to have no positional encoding for relu mlp')
-
-# data processing and i/o
-p.add_argument('--centered', action='store_true', default=False,
-               help='centere input coordinates as -1 to 1')
-p.add_argument('--img_fn', type=str, default='',
-               help='path to specific png filename')
-p.add_argument('--grayscale', action='store_true', default=False,
-               help='if grayscale image')
-
-# summary, logging options
-p.add_argument('--steps_til_ckpt', type=int, default=100,
-               help='Time interval in seconds until checkpoint is saved.')
-p.add_argument('--steps_til_summary', type=int, default=100,
-               help='Time interval in seconds until tensorboard summary is saved.')
-
-opt = p.parse_args()
-
-if opt.experiment_name is None and opt.render_model is None:
-    p.error('--experiment_name is required.')
-
-os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu)
-
-
-def main(opt, img):
+def main(opt, img, p):
 
     print('--- Run Configuration ---')
     for k, v in vars(opt).items():
         print(k, v)
 
-    model = train(opt, img)
+    model = train(opt, img, p)
     return model
 
 
-def train(opt, img):
+def train(opt, img, p):
 
     # set up logging dir
     opt.root_path = os.path.join(opt.logging_root, opt.experiment_name)
@@ -107,7 +42,7 @@ def train(opt, img):
     loss_fn, summary_fn = init_loss(opt, trn_dataset, val_dataset)
 
     # back up config file
-    save_params(opt, model)
+    save_params(opt, model, p)
 
     # start training
     training.train(model=model, train_dataloader=dataloader,
@@ -115,6 +50,7 @@ def train(opt, img):
                    steps_til_summary=opt.steps_til_summary,
                    steps_til_checkpoint=opt.steps_til_ckpt,
                    model_dir=opt.root_path, loss_fn=loss_fn, summary_fn=summary_fn)
+    model.eval()
     return model
 
 
@@ -216,7 +152,7 @@ def init_loss(opt, trn_dataset, val_dataset):
     return loss_fn, summary_fn
 
 
-def save_params(opt, model):
+def save_params(opt, model,p):
 
     # Save command-line parameters log directory.
     p.write_config_file(opt, [os.path.join(opt.root_path, 'config.ini')])
@@ -229,4 +165,69 @@ def save_params(opt, model):
 
 
 if __name__ == '__main__':
+
+    torch.backends.cudnn.benchmark = True
+    torch.set_num_threads(4)
+
+    p = configargparse.ArgumentParser()
+
+    # config file, output directories
+    p.add('-c', '--config', required=False, is_config_file=True,
+          help='Path to config file.')
+    p.add_argument('--logging_root', type=str, default='../logs', help='root for logging')
+    p.add_argument('--experiment_name', type=str, default='train_img',
+                   help='path to directory where checkpoints & tensorboard events will be saved.')
+
+    # general training options
+    p.add_argument('--model', default='mfn', choices=['mfn', 'mlp'],
+                   help='use MFN or standard MLP')
+    p.add_argument('--batch_size', type=int, default=1)
+    p.add_argument('--hidden_features', type=int, default=32)
+    p.add_argument('--hidden_layers', type=int, default=4)
+    p.add_argument('--res', type=int, default=256,
+                   help='resolution of image to fit, also used to set the network-equivalent sample rate'
+                        + ' i.e., the maximum network bandwidth in cycles per unit interval is half this value')
+    p.add_argument('--lr', type=float, default=5e-4, help='learning rate')
+    p.add_argument('--num_steps', type=int, default=5001,
+                   help='number of training steps')
+    p.add_argument('--gpu', type=int, default=0,
+                   help='gpu id to use for training')
+
+    # mfn options
+    p.add_argument('--multiscale', action='store_true', default=False,
+                   help='use multiscale')
+    p.add_argument('--use_resized', action='store_true', default=False,
+                   help='use multiscale')
+
+    # mlp options
+    p.add_argument('--activation', type=str, default='sine',
+                   choices=['sine', 'relu', 'requ', 'gelu', 'selu', 'softplus', 'tanh', 'swish'],
+                   help='activation to use (for model mlp only)')
+    p.add_argument('--ipe', action='store_true', default=False,
+                   help='use integrated positional encoding')
+    p.add_argument('--w0', type=float, default=10)
+    p.add_argument('--pe_scale', type=float, default=3, help='positional encoding scale')
+    p.add_argument('--no_pe', action='store_true', default=False,
+                   help='override to have no positional encoding for relu mlp')
+
+    # data processing and i/o
+    p.add_argument('--centered', action='store_true', default=False,
+                   help='centere input coordinates as -1 to 1')
+    p.add_argument('--img_fn', type=str, default='',
+                   help='path to specific png filename')
+    p.add_argument('--grayscale', action='store_true', default=False,
+                   help='if grayscale image')
+
+    # summary, logging options
+    p.add_argument('--steps_til_ckpt', type=int, default=100,
+                   help='Time interval in seconds until checkpoint is saved.')
+    p.add_argument('--steps_til_summary', type=int, default=100,
+                   help='Time interval in seconds until tensorboard summary is saved.')
+
+    opt = p.parse_args()
+
+    if opt.experiment_name is None and opt.render_model is None:
+        p.error('--experiment_name is required.')
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(opt.gpu)
     model = main(opt)

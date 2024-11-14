@@ -1,4 +1,4 @@
-name: bacon
+name: combine_neural_fields
 channels:
   - pytorch
   - defaults
