@@ -480,7 +480,7 @@ class CoordinateNet(nn.Module):
         self.is_sdf = is_sdf
 
         if self.nl != 'sine' and not self.no_pe:
-            in_features = hidden_features  # in_features * hidden_features
+            in_features = in_features * hidden_features
 
             self.pe = FFPositionalEncoding(hidden_features, pe_scale, dims=dims)
 
@@ -543,7 +543,7 @@ def IntegratedPositionalEncoding(coords, radius, L=8):
 
 
 class FFPositionalEncoding(nn.Module):
-    def __init__(self, embedding_size, scale, dims=2, gaussian=True):
+    def __init__(self, embedding_size, scale, dims=2, gaussian=False):
         super().__init__()
         self.embedding_size = embedding_size
         self.scale = scale
